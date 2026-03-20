@@ -103,6 +103,9 @@ db.exec(`
   );
 `);
 
+// Migrations
+try { db.exec('ALTER TABLE recipes ADD COLUMN rest_time INTEGER'); } catch (e) {}
+
 // Seed default categories if none exist
 const catCount = db.prepare('SELECT COUNT(*) as count FROM categories').get();
 if (catCount.count === 0) {

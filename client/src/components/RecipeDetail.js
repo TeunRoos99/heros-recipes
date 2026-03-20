@@ -87,7 +87,7 @@ export default function RecipeDetail({ recipe: initialRecipe, onClose, onEdit, o
     }
   };
 
-  const totalTime = (recipe.prep_time || 0) + (recipe.cook_time || 0);
+  const totalTime = (recipe.prep_time || 0) + (recipe.cook_time || 0) + (recipe.rest_time || 0);
 
   const overlayStyle = {
     position: 'fixed', inset: 0, zIndex: 2000,
@@ -158,6 +158,13 @@ export default function RecipeDetail({ recipe: initialRecipe, onClose, onEdit, o
                   <span style={{ fontSize: 18 }}>🔥</span>
                   <span style={{ fontSize: 11, color: theme.textSecondary, fontWeight: 600, marginTop: 2 }}>KOOKTIJD</span>
                   <span style={{ fontSize: 14, fontWeight: 700, color: theme.text }}>{recipe.cook_time} min</span>
+                </div>
+              )}
+              {recipe.rest_time > 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', background: theme.surfaceHover, borderRadius: 10, padding: '8px 14px', minWidth: 80 }}>
+                  <span style={{ fontSize: 18 }}>💤</span>
+                  <span style={{ fontSize: 11, color: theme.textSecondary, fontWeight: 600, marginTop: 2 }}>RUSTTIJD</span>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: theme.text }}>{recipe.rest_time} min</span>
                 </div>
               )}
               {totalTime > 0 && (

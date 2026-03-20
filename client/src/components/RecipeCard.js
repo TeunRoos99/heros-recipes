@@ -18,7 +18,7 @@ export default function RecipeCard({ recipe, onClick, onEdit, onDelete }) {
   const [hovered, setHovered] = useState(false);
   const isOwner = user && (user.id === recipe.user_id || user.role === 'admin');
   const categoryColor = CATEGORY_COLORS[recipe.category] || theme.primary;
-  const totalTime = (recipe.prep_time || 0) + (recipe.cook_time || 0);
+  const totalTime = (recipe.prep_time || 0) + (recipe.cook_time || 0) + (recipe.rest_time || 0);
 
   return (
     <div

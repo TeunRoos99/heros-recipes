@@ -137,15 +137,15 @@ router.get('/:id', optionalAuth, (req, res) => {
 
 // POST /api/recipes
 router.post('/', auth, (req, res) => {
-  const { title, description, category, prep_time, cook_time, servings, is_public, ingredients, steps, tags } = req.body;
+  const { title, description, category, prep_time, cook_time, rest_time, servings, is_public, ingredients, steps, tags } = req.body;
   if (!title) return res.status(400).json({ error: 'Title required' });
 
   const id = uuidv4();
   db.prepare(`
-    INSERT INTO recipes (id, user_id, title, description, category, prep_time, cook_time, servings, is_public)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO recipes (id, user_id, title, description, category, prep_time, cook_time, rest_time, servings, is_public)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(id, req.user.id, title, description || null, category || null,
-    prep_time || null, cook_time || null, servings || null, is_public ? 1 : 0);
+    prep_time || null, cook_time || null, rest_time || null, servings || null, is_public ? 1 : 0);
 
   // Insert ingredients
   if (ingredients && ingredients.length > 0) {
@@ -192,15 +192,16 @@ router.put('/:id', auth, (req, res) => {
     return res.status(403).json({ error: 'Access denied' });
   }
 
-  const { title, description, category, prep_time, cook_time, servings, is_public, ingredients, steps, tags } = req.body;
+  const { title, description, category, prep_time, cook_time, rest_time, servings, is_public, ingredients, steps, tags } = req.body;
 
   db.prepare(`
-    UPDATE recipes SET title=?, description=?, category=?, prep_time=?, cook_time=?,
+    UPDATE recipes SET title=?, description=?, category=?, prep_time=?, cook_time=?, rest_time=?,
     servings=?, is_public=?, updated_at=datetime('now') WHERE id=?
   `).run(
     title || recipe.title, description !== undefined ? description : recipe.description,
     category || recipe.category, prep_time !== undefined ? prep_time : recipe.prep_time,
     cook_time !== undefined ? cook_time : recipe.cook_time,
+    rest_time !== undefined ? rest_time : recipe.rest_time,
     servings !== undefined ? servings : recipe.servings,
     is_public !== undefined ? (is_public ? 1 : 0) : recipe.is_public,
     req.params.id
@@ -331,12 +332,12 @@ router.post('/import', auth, (req, res) => {
       if (existing) { skipped++; continue; }
 
       db.prepare(`
-        INSERT INTO recipes (id, user_id, title, description, category, prep_time, cook_time, servings, is_public, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO recipes (id, user_id, title, description, category, prep_time, cook_time, rest_time, servings, is_public, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).run(
         recipe.id, req.user.id, recipe.title, recipe.description || null,
         recipe.category || null, recipe.prep_time || null, recipe.cook_time || null,
-        recipe.servings || null, recipe.is_public || 0,
+        recipe.rest_time || null, recipe.servings || null, recipe.is_public || 0,
         recipe.created_at || new Date().toISOString(), recipe.updated_at || new Date().toISOString()
       );
 

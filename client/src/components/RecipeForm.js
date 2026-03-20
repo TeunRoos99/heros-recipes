@@ -30,6 +30,7 @@ export default function RecipeForm({ recipe, onClose, onSave }) {
     category: recipe?.category || '',
     prep_time: recipe?.prep_time || '',
     cook_time: recipe?.cook_time || '',
+    rest_time: recipe?.rest_time || '',
     servings: recipe?.servings || '',
     is_public: recipe?.is_public || false,
     tags: recipe?.tags || [],
@@ -90,6 +91,7 @@ export default function RecipeForm({ recipe, onClose, onSave }) {
         ...form,
         prep_time: form.prep_time ? parseInt(form.prep_time) : null,
         cook_time: form.cook_time ? parseInt(form.cook_time) : null,
+        rest_time: form.rest_time ? parseInt(form.rest_time) : null,
         servings: form.servings ? parseInt(form.servings) : null,
         ingredients: form.ingredients.filter(i => i.name.trim()).map(i => ({
           name: i.name,
@@ -189,6 +191,10 @@ export default function RecipeForm({ recipe, onClose, onSave }) {
             <div>
               <label style={labelStyle}>Kooktijd (min)</label>
               <input style={inputStyle} type="number" min="0" value={form.cook_time} onChange={e => setForm(f => ({ ...f, cook_time: e.target.value }))} placeholder="30" />
+            </div>
+            <div>
+              <label style={labelStyle}>Rusttijd (min)</label>
+              <input style={inputStyle} type="number" min="0" value={form.rest_time} onChange={e => setForm(f => ({ ...f, rest_time: e.target.value }))} placeholder="60" />
             </div>
             <div>
               <label style={labelStyle}>Porties</label>
