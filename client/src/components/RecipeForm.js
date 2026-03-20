@@ -44,8 +44,7 @@ export default function RecipeForm({ recipe, onClose, onSave }) {
   useEffect(() => {
     if (!recipe?.id) return;
     setForm(buildForm(recipe));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [recipe?.id, recipe?.ingredients?.length, recipe?.steps?.length]);
+  }, [recipe?.id, recipe?.ingredients?.length, recipe?.steps?.length]); // eslint-disable-line
 
   const inputStyle = {
     width: '100%',
