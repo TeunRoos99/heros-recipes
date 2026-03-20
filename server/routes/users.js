@@ -60,4 +60,32 @@ router.post('/:id/restore', (req, res) => {
   res.json({ message: 'User restored' });
 });
 
+// PUT /api/users/:id/role
+router.put('/:id/role', (req, res) => {
+  const user = db.prepare('SELECT * FROM users WHERE id = ? AND deleted_at IS NULL').get(req.params.id);
+  if (!user) return res.status(404).json({ error: 'User not found' });
+
+  if (user.id === req.user.id) {
+    return res.status(400).json({ error: 'Je kunt je eigen rol niet wijzigen' });
+  }
+
+  const newRole = user.role === 'admin' ? 'user' : 'admin';
+  db.prepare('UPDATE users SET role = ? WHERE id = ?').run(newRole, user.id);
+  const updated = db.prepare('SELECT id, username, email, role, created_at FROM users WHERE id = ?').get(user.id);
+  res.json({ user: updated });
+});
+
+// DELETE /api/users/:id/permanent
+router.delete('/:id/permanent', (req, res) => {
+  const user = db.prepare('SELECT * FROM users WHERE id = ? AND deleted_at IS NOT NULL').get(req.params.id);
+  if (!user) return res.status(404).json({ error: 'User not found or not soft-deleted yet' });
+
+  if (user.id === req.user.id) {
+    return res.status(400).json({ error: 'Cannot permanently delete yourself' });
+  }
+
+  db.prepare('DELETE FROM users WHERE id = ?').run(req.params.id);
+  res.json({ message: 'User permanently deleted' });
+});
+
 module.exports = router;

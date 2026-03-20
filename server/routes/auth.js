@@ -56,6 +56,24 @@ router.post('/register', (req, res) => {
   });
 });
 
+// PUT /api/auth/password
+router.put('/password', auth, (req, res) => {
+  const { current_password, new_password } = req.body;
+  if (!current_password || !new_password) {
+    return res.status(400).json({ error: 'Huidig en nieuw wachtwoord zijn verplicht' });
+  }
+  if (new_password.length < 6) {
+    return res.status(400).json({ error: 'Nieuw wachtwoord moet minimaal 6 tekens zijn' });
+  }
+  const user = db.prepare('SELECT * FROM users WHERE id = ? AND deleted_at IS NULL').get(req.user.id);
+  if (!user || !bcrypt.compareSync(current_password, user.password_hash)) {
+    return res.status(401).json({ error: 'Huidig wachtwoord klopt niet' });
+  }
+  const newHash = bcrypt.hashSync(new_password, 10);
+  db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(newHash, req.user.id);
+  res.json({ message: 'Wachtwoord gewijzigd' });
+});
+
 // GET /api/auth/me
 router.get('/me', auth, (req, res) => {
   const user = db.prepare('SELECT id, username, email, role FROM users WHERE id = ? AND deleted_at IS NULL').get(req.user.id);

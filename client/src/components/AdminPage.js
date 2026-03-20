@@ -1,16 +1,23 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
+import { useAuth } from '../contexts/AuthContext';
 import { api } from '../api';
 import { ToastContext } from '../App';
 
 export default function AdminPage() {
   const { theme } = useTheme();
+  const { user: currentUser } = useAuth();
   const showToast = useContext(ToastContext);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState({ username: '', email: '', password: '', role: 'user' });
   const [creating, setCreating] = useState(false);
   const [showForm, setShowForm] = useState(false);
+
+  // Password change state
+  const [pwForm, setPwForm] = useState({ current_password: '', new_password: '', confirm_password: '' });
+  const [pwLoading, setPwLoading] = useState(false);
+  const [showPwForm, setShowPwForm] = useState(false);
 
   useEffect(() => { fetchUsers(); }, []);
 
@@ -43,6 +50,25 @@ export default function AdminPage() {
     }
   };
 
+  const changePassword = async (e) => {
+    e.preventDefault();
+    if (pwForm.new_password !== pwForm.confirm_password) {
+      showToast('Nieuwe wachtwoorden komen niet overeen', 'error');
+      return;
+    }
+    setPwLoading(true);
+    try {
+      await api('/auth/password', { method: 'PUT', body: { current_password: pwForm.current_password, new_password: pwForm.new_password } });
+      setPwForm({ current_password: '', new_password: '', confirm_password: '' });
+      setShowPwForm(false);
+      showToast('Wachtwoord gewijzigd!', 'success');
+    } catch (err) {
+      showToast(err.message, 'error');
+    } finally {
+      setPwLoading(false);
+    }
+  };
+
   const deleteUser = async (user) => {
     if (!window.confirm(`Gebruiker "${user.username}" verwijderen?`)) return;
     try {
@@ -59,6 +85,29 @@ export default function AdminPage() {
       await api(`/users/${user.id}/restore`, { method: 'POST' });
       setUsers(us => us.map(u => u.id === user.id ? { ...u, deleted_at: null } : u));
       showToast('Gebruiker hersteld!', 'success');
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  };
+
+  const toggleRole = async (user) => {
+    const toRole = user.role === 'admin' ? 'gebruiker' : 'beheerder';
+    if (!window.confirm(`"${user.username}" promoveren tot ${toRole}?`)) return;
+    try {
+      const data = await api(`/users/${user.id}/role`, { method: 'PUT' });
+      setUsers(us => us.map(u => u.id === user.id ? data.user : u));
+      showToast(`${user.username} is nu ${toRole}`, 'success');
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  };
+
+  const permanentDelete = async (user) => {
+    if (!window.confirm(`"${user.username}" definitief verwijderen? Dit kan niet ongedaan worden gemaakt.`)) return;
+    try {
+      await api(`/users/${user.id}/permanent`, { method: 'DELETE' });
+      setUsers(us => us.filter(u => u.id !== user.id));
+      showToast('Gebruiker definitief verwijderd', 'success');
     } catch (err) {
       showToast(err.message, 'error');
     }
@@ -86,6 +135,18 @@ export default function AdminPage() {
     letterSpacing: '0.04em',
   };
 
+  const btnSmall = (color, bg) => ({
+    padding: '6px 12px',
+    background: bg || `${color}15`,
+    border: `1px solid ${color}40`,
+    borderRadius: 8,
+    color: color,
+    fontSize: 12,
+    fontWeight: 600,
+    cursor: 'pointer',
+    whiteSpace: 'nowrap',
+  });
+
   const formatDate = (dateStr) => {
     if (!dateStr) return '';
     return new Date(dateStr).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -101,13 +162,58 @@ export default function AdminPage() {
             <p style={{ fontSize: 13, color: theme.textSecondary, marginTop: 2 }}>Gebruikersbeheer</p>
           </div>
         </div>
-        <button
-          onClick={() => setShowForm(s => !s)}
-          style={{ padding: '9px 18px', background: theme.primary, border: 'none', borderRadius: 10, color: '#fff', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}
-        >
-          + Nieuwe gebruiker
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button
+            onClick={() => { setShowPwForm(s => !s); setShowForm(false); }}
+            style={{ padding: '9px 18px', background: theme.surfaceHover, border: `1px solid ${theme.border}`, borderRadius: 10, color: theme.text, fontWeight: 600, fontSize: 14, cursor: 'pointer' }}
+          >
+            🔑 Mijn wachtwoord
+          </button>
+          <button
+            onClick={() => { setShowForm(s => !s); setShowPwForm(false); }}
+            style={{ padding: '9px 18px', background: theme.primary, border: 'none', borderRadius: 10, color: '#fff', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}
+          >
+            + Nieuwe gebruiker
+          </button>
+        </div>
       </div>
+
+      {/* Change own password form */}
+      {showPwForm && (
+        <div style={{ background: theme.surface, borderRadius: 12, border: `1px solid ${theme.border}`, padding: 20, marginBottom: 20, animation: 'slideDown 0.2s ease' }}>
+          <h3 style={{ fontSize: 15, fontWeight: 700, color: theme.text, marginBottom: 4 }}>Wachtwoord wijzigen</h3>
+          <p style={{ fontSize: 13, color: theme.textSecondary, marginBottom: 16 }}>Wijzig het wachtwoord van <strong>{currentUser?.username}</strong></p>
+          <form onSubmit={changePassword}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12, marginBottom: 14 }}>
+              <div>
+                <label style={labelStyle}>Huidig wachtwoord *</label>
+                <input style={inputStyle} type="password" value={pwForm.current_password} onChange={e => setPwForm(f => ({ ...f, current_password: e.target.value }))} placeholder="••••••••" required />
+              </div>
+              <div>
+                <label style={labelStyle}>Nieuw wachtwoord *</label>
+                <input style={inputStyle} type="password" value={pwForm.new_password} onChange={e => setPwForm(f => ({ ...f, new_password: e.target.value }))} placeholder="min. 6 tekens" required />
+              </div>
+              <div>
+                <label style={labelStyle}>Bevestig nieuw wachtwoord *</label>
+                <input
+                  style={{ ...inputStyle, borderColor: pwForm.confirm_password && pwForm.confirm_password !== pwForm.new_password ? theme.danger : theme.border }}
+                  type="password"
+                  value={pwForm.confirm_password}
+                  onChange={e => setPwForm(f => ({ ...f, confirm_password: e.target.value }))}
+                  placeholder="herhaal nieuw wachtwoord"
+                  required
+                />
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button type="button" onClick={() => setShowPwForm(false)} style={{ padding: '9px 16px', background: theme.surfaceHover, border: `1px solid ${theme.border}`, borderRadius: 8, color: theme.text, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Annuleren</button>
+              <button type="submit" disabled={pwLoading} style={{ padding: '9px 16px', background: theme.primary, border: 'none', borderRadius: 8, color: '#fff', fontSize: 13, fontWeight: 600, cursor: pwLoading ? 'not-allowed' : 'pointer' }}>
+                {pwLoading ? 'Bezig...' : 'Wachtwoord opslaan'}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
 
       {/* Create user form */}
       {showForm && (
@@ -166,7 +272,12 @@ export default function AdminPage() {
               <div style={{ flex: 1, minWidth: 140 }}>
                 <div style={{ fontWeight: 600, fontSize: 14, color: user.deleted_at ? theme.textSecondary : theme.text, textDecoration: user.deleted_at ? 'line-through' : 'none' }}>
                   {user.username}
-                  {user.deleted_at && <span style={{ marginLeft: 6, fontSize: 11, background: `${theme.danger}20`, color: theme.danger, padding: '1px 6px', borderRadius: 20, fontWeight: 500, textDecoration: 'none' }}>Verwijderd</span>}
+                  {user.id === currentUser?.id && (
+                    <span style={{ marginLeft: 6, fontSize: 11, background: `${theme.primary}20`, color: theme.primary, padding: '1px 6px', borderRadius: 20, fontWeight: 500, textDecoration: 'none' }}>Jij</span>
+                  )}
+                  {user.deleted_at && (
+                    <span style={{ marginLeft: 6, fontSize: 11, background: `${theme.danger}20`, color: theme.danger, padding: '1px 6px', borderRadius: 20, fontWeight: 500, textDecoration: 'none' }}>Verwijderd</span>
+                  )}
                 </div>
                 <div style={{ fontSize: 12, color: theme.textSecondary, marginTop: 2 }}>
                   {user.email && <span>{user.email} · </span>}
@@ -176,21 +287,33 @@ export default function AdminPage() {
                   <span> · Aangemaakt: {formatDate(user.created_at)}</span>
                 </div>
               </div>
-              <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+              <div style={{ display: 'flex', gap: 6, flexShrink: 0, flexWrap: 'wrap' }}>
                 {user.deleted_at ? (
-                  <button
-                    onClick={() => restoreUser(user)}
-                    style={{ padding: '6px 12px', background: `${theme.success}15`, border: `1px solid ${theme.success}40`, borderRadius: 8, color: theme.success, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
-                  >
-                    Herstellen
-                  </button>
+                  <>
+                    <button onClick={() => restoreUser(user)} style={btnSmall(theme.success)}>
+                      Herstellen
+                    </button>
+                    <button onClick={() => permanentDelete(user)} style={btnSmall(theme.danger)}>
+                      Definitief verwijderen
+                    </button>
+                  </>
                 ) : (
-                  <button
-                    onClick={() => deleteUser(user)}
-                    style={{ padding: '6px 12px', background: `${theme.danger}15`, border: `1px solid ${theme.danger}40`, borderRadius: 8, color: theme.danger, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
-                  >
-                    Verwijderen
-                  </button>
+                  <>
+                    {user.id !== currentUser?.id && (
+                      <button
+                        onClick={() => toggleRole(user)}
+                        title={user.role === 'admin' ? 'Degraderen naar gebruiker' : 'Promoveren tot beheerder'}
+                        style={btnSmall(user.role === 'admin' ? theme.textSecondary : theme.primary)}
+                      >
+                        {user.role === 'admin' ? '👤 Degraderen' : '👑 Promoveren'}
+                      </button>
+                    )}
+                    {user.id !== currentUser?.id && (
+                      <button onClick={() => deleteUser(user)} style={btnSmall(theme.danger)}>
+                        Verwijderen
+                      </button>
+                    )}
+                  </>
                 )}
               </div>
             </div>
