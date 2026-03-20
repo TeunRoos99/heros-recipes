@@ -95,7 +95,21 @@ db.exec(`
     order_index INTEGER NOT NULL DEFAULT 0,
     FOREIGN KEY (list_id) REFERENCES shopping_lists(id)
   );
+
+  CREATE TABLE IF NOT EXISTS categories (
+    id TEXT PRIMARY KEY,
+    name TEXT UNIQUE NOT NULL,
+    order_index INTEGER NOT NULL DEFAULT 0
+  );
 `);
+
+// Seed default categories if none exist
+const catCount = db.prepare('SELECT COUNT(*) as count FROM categories').get();
+if (catCount.count === 0) {
+  const defaults = ['Ontbijt', 'Lunch', 'Diner', 'Snack', 'Dessert', 'Drank', 'Overig'];
+  const insert = db.prepare('INSERT INTO categories (id, name, order_index) VALUES (?, ?, ?)');
+  defaults.forEach((name, i) => insert.run(uuidv4(), name, i));
+}
 
 // Seed admin user if no users exist
 const userCount = db.prepare('SELECT COUNT(*) as count FROM users').get();

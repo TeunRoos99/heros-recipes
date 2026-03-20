@@ -3,14 +3,20 @@ import { useTheme } from '../contexts/ThemeContext';
 import { api } from '../api';
 import { ToastContext } from '../App';
 
-const CATEGORIES = ['Ontbijt', 'Lunch', 'Diner', 'Snack', 'Dessert', 'Drank', 'Overig'];
-
 export default function RecipeForm({ recipe, onClose, onSave }) {
   const { theme } = useTheme();
   const showToast = useContext(ToastContext);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [loading, setLoading] = useState(false);
   const [tagInput, setTagInput] = useState('');
+  const [categories, setCategories] = useState([]);
+
+  useEffect(() => {
+    fetch((process.env.NODE_ENV === 'production' ? '' : 'http://localhost:3002') + '/api/categories')
+      .then(r => r.json())
+      .then(d => setCategories(d.categories || []))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -165,10 +171,16 @@ export default function RecipeForm({ recipe, onClose, onSave }) {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 12 }}>
             <div>
               <label style={labelStyle}>Categorie</label>
-              <select style={inputStyle} value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))}>
-                <option value="">Kies...</option>
-                {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
+              <input
+                style={inputStyle}
+                list="category-list"
+                value={form.category}
+                onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
+                placeholder="Kies of typ nieuw..."
+              />
+              <datalist id="category-list">
+                {categories.map(c => <option key={c.id} value={c.name} />)}
+              </datalist>
             </div>
             <div>
               <label style={labelStyle}>Voorbereidingstijd (min)</label>

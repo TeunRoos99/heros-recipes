@@ -19,7 +19,49 @@ export default function AdminPage() {
   const [pwLoading, setPwLoading] = useState(false);
   const [showPwForm, setShowPwForm] = useState(false);
 
-  useEffect(() => { fetchUsers(); }, []);
+  // Categories state
+  const [categories, setCategories] = useState([]);
+  const [newCategory, setNewCategory] = useState('');
+  const [catLoading, setCatLoading] = useState(false);
+  const [showCatSection, setShowCatSection] = useState(false);
+
+  useEffect(() => { fetchUsers(); fetchCategories(); }, []);
+
+  const fetchCategories = async () => {
+    try {
+      const data = await api('/categories');
+      setCategories(data.categories || []);
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  };
+
+  const addCategory = async (e) => {
+    e.preventDefault();
+    if (!newCategory.trim()) return;
+    setCatLoading(true);
+    try {
+      const data = await api('/categories', { method: 'POST', body: { name: newCategory.trim() } });
+      setCategories(cs => [...cs, data.category]);
+      setNewCategory('');
+      showToast(`Categorie "${data.category.name}" toegevoegd!`, 'success');
+    } catch (err) {
+      showToast(err.message, 'error');
+    } finally {
+      setCatLoading(false);
+    }
+  };
+
+  const deleteCategory = async (cat) => {
+    if (!window.confirm(`Categorie "${cat.name}" verwijderen? Bestaande recepten behouden deze categorie nog wel.`)) return;
+    try {
+      await api(`/categories/${cat.id}`, { method: 'DELETE' });
+      setCategories(cs => cs.filter(c => c.id !== cat.id));
+      showToast('Categorie verwijderd', 'success');
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  };
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -162,21 +204,78 @@ export default function AdminPage() {
             <p style={{ fontSize: 13, color: theme.textSecondary, marginTop: 2 }}>Gebruikersbeheer</p>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <button
-            onClick={() => { setShowPwForm(s => !s); setShowForm(false); }}
+            onClick={() => { setShowCatSection(s => !s); setShowPwForm(false); setShowForm(false); }}
+            style={{ padding: '9px 18px', background: showCatSection ? `${theme.primary}15` : theme.surfaceHover, border: `1px solid ${showCatSection ? theme.primary : theme.border}`, borderRadius: 10, color: showCatSection ? theme.primary : theme.text, fontWeight: 600, fontSize: 14, cursor: 'pointer' }}
+          >
+            🏷️ Categorieën
+          </button>
+          <button
+            onClick={() => { setShowPwForm(s => !s); setShowForm(false); setShowCatSection(false); }}
             style={{ padding: '9px 18px', background: theme.surfaceHover, border: `1px solid ${theme.border}`, borderRadius: 10, color: theme.text, fontWeight: 600, fontSize: 14, cursor: 'pointer' }}
           >
             🔑 Mijn wachtwoord
           </button>
           <button
-            onClick={() => { setShowForm(s => !s); setShowPwForm(false); }}
+            onClick={() => { setShowForm(s => !s); setShowPwForm(false); setShowCatSection(false); }}
             style={{ padding: '9px 18px', background: theme.primary, border: 'none', borderRadius: 10, color: '#fff', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}
           >
             + Nieuwe gebruiker
           </button>
         </div>
       </div>
+
+      {/* Categories management */}
+      {showCatSection && (
+        <div style={{ background: theme.surface, borderRadius: 12, border: `1px solid ${theme.border}`, padding: 20, marginBottom: 20, animation: 'slideDown 0.2s ease' }}>
+          <h3 style={{ fontSize: 15, fontWeight: 700, color: theme.text, marginBottom: 4 }}>Categorieën beheren</h3>
+          <p style={{ fontSize: 13, color: theme.textSecondary, marginBottom: 16 }}>Categorieën die beschikbaar zijn bij het aanmaken van recepten.</p>
+
+          {/* Add new category */}
+          <form onSubmit={addCategory} style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+            <input
+              style={{ ...inputStyle, flex: 1 }}
+              value={newCategory}
+              onChange={e => setNewCategory(e.target.value)}
+              placeholder="Nieuwe categorie naam..."
+            />
+            <button
+              type="submit"
+              disabled={catLoading || !newCategory.trim()}
+              style={{ padding: '10px 18px', background: theme.primary, border: 'none', borderRadius: 8, color: '#fff', fontWeight: 600, fontSize: 14, cursor: catLoading || !newCategory.trim() ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap', opacity: !newCategory.trim() ? 0.5 : 1 }}
+            >
+              + Toevoegen
+            </button>
+          </form>
+
+          {/* Category list */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {categories.map(cat => (
+              <div key={cat.id} style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                background: theme.surfaceHover,
+                border: `1px solid ${theme.border}`,
+                borderRadius: 20,
+                padding: '6px 12px',
+                fontSize: 13,
+                fontWeight: 500,
+                color: theme.text,
+              }}>
+                <span>{cat.name}</span>
+                <button
+                  onClick={() => deleteCategory(cat)}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: theme.textSecondary, fontSize: 16, lineHeight: 1, padding: 0, display: 'flex', alignItems: 'center' }}
+                  title="Verwijderen"
+                >×</button>
+              </div>
+            ))}
+            {categories.length === 0 && (
+              <p style={{ fontSize: 13, color: theme.textSecondary }}>Geen categorieën gevonden.</p>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Change own password form */}
       {showPwForm && (

@@ -18,6 +18,7 @@ app.use('/api/auth', require('./routes/auth'));
 app.use('/api/recipes', require('./routes/recipes'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/shopping', require('./routes/shopping'));
+app.use('/api/categories', require('./routes/categories'));
 
 // Serve React build in production
 const publicPath = path.join(__dirname, 'public');

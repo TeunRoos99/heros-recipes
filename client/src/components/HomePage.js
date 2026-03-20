@@ -7,8 +7,6 @@ import RecipeCard from './RecipeCard';
 import RecipeForm from './RecipeForm';
 import RecipeDetail from './RecipeDetail';
 
-const CATEGORIES = ['Ontbijt', 'Lunch', 'Diner', 'Snack', 'Dessert', 'Drank', 'Overig'];
-
 export default function HomePage() {
   const { theme } = useTheme();
   const { user } = useAuth();
@@ -20,6 +18,11 @@ export default function HomePage() {
   const [tagFilter, setTagFilter] = useState('');
   const [myOnly, setMyOnly] = useState(false);
   const [allTags, setAllTags] = useState([]);
+  const [categories, setCategories] = useState([]);
+
+  useEffect(() => {
+    api('/categories').then(d => setCategories(d.categories || [])).catch(() => {});
+  }, []);
   const [showForm, setShowForm] = useState(false);
   const [editRecipe, setEditRecipe] = useState(null);
   const [viewRecipe, setViewRecipe] = useState(null);
@@ -137,7 +140,7 @@ export default function HomePage() {
           onChange={e => setCategory(e.target.value)}
         >
           <option value="">Alle categorieën</option>
-          {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+          {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
         </select>
 
         <button
