@@ -236,7 +236,7 @@ export default function HomePage() {
               key={r.id}
               recipe={r}
               onClick={setViewRecipe}
-              onEdit={(r) => { setEditRecipe(r); setShowForm(true); }}
+              onEdit={async (r) => { try { const d = await api(`/recipes/${r.id}`); setEditRecipe(d.recipe); } catch { setEditRecipe(r); } setShowForm(true); }}
               onDelete={handleDelete}
             />
           ))}
