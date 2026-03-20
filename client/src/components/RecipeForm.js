@@ -24,19 +24,28 @@ export default function RecipeForm({ recipe, onClose, onSave }) {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const [form, setForm] = useState({
-    title: recipe?.title || '',
-    description: recipe?.description || '',
-    category: recipe?.category || '',
-    prep_time: recipe?.prep_time || '',
-    cook_time: recipe?.cook_time || '',
-    rest_time: recipe?.rest_time || '',
-    servings: recipe?.servings || '',
-    is_public: recipe?.is_public || false,
-    tags: recipe?.tags || [],
-    ingredients: recipe?.ingredients?.length ? recipe.ingredients.map(i => ({ name: i.name, amount: i.amount || '', unit: i.unit || '' })) : [{ name: '', amount: '', unit: '' }],
-    steps: recipe?.steps?.length ? recipe.steps.map(s => ({ description: s.description })) : [{ description: '' }],
+  const buildForm = (r) => ({
+    title: r?.title || '',
+    description: r?.description || '',
+    category: r?.category || '',
+    prep_time: r?.prep_time || '',
+    cook_time: r?.cook_time || '',
+    rest_time: r?.rest_time || '',
+    servings: r?.servings || '',
+    is_public: r?.is_public || false,
+    tags: r?.tags || [],
+    ingredients: r?.ingredients?.length ? r.ingredients.map(i => ({ name: i.name, amount: i.amount || '', unit: i.unit || '' })) : [{ name: '', amount: '', unit: '' }],
+    steps: r?.steps?.length ? r.steps.map(s => ({ description: s.description })) : [{ description: '' }],
   });
+
+  const [form, setForm] = useState(() => buildForm(recipe));
+
+  // Resync when the full recipe data arrives (ingredients/steps may come in after initial mount)
+  useEffect(() => {
+    if (!recipe?.id) return;
+    setForm(buildForm(recipe));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recipe?.id, recipe?.ingredients?.length, recipe?.steps?.length]);
 
   const inputStyle = {
     width: '100%',
