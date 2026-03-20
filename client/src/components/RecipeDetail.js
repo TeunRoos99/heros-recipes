@@ -74,9 +74,12 @@ export default function RecipeDetail({ recipe: initialRecipe, onClose, onEdit, o
         const d = await api('/shopping/lists', { method: 'POST', body: { name: newListName.trim() } });
         listId = d.list.id;
       }
+      const checkedIds = Object.entries(checkedIngredients)
+        .filter(([, v]) => v)
+        .map(([id]) => id);
       const data = await api(`/shopping/lists/${listId}/add-recipe`, {
         method: 'POST',
-        body: { recipe_id: recipe.id, servings_multiplier: shoppingMultiplier },
+        body: { recipe_id: recipe.id, servings_multiplier: shoppingMultiplier, checked_ingredient_ids: checkedIds },
       });
       showToast(`${data.added} ingrediënten toegevoegd aan boodschappenlijst!`, 'success');
       setShowShoppingModal(false);

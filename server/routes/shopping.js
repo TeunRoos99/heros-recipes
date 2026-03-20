@@ -105,7 +105,7 @@ router.post('/lists/:id/add-recipe', (req, res) => {
   const list = db.prepare('SELECT * FROM shopping_lists WHERE id = ? AND user_id = ?').get(req.params.id, req.user.id);
   if (!list) return res.status(404).json({ error: 'List not found' });
 
-  const { recipe_id, servings_multiplier = 1 } = req.body;
+  const { recipe_id, servings_multiplier = 1, checked_ingredient_ids = [] } = req.body;
   const recipe = db.prepare('SELECT * FROM recipes WHERE id = ? AND deleted_at IS NULL').get(recipe_id);
   if (!recipe) return res.status(404).json({ error: 'Recipe not found' });
 
@@ -115,14 +115,15 @@ router.post('/lists/:id/add-recipe', (req, res) => {
   let orderIndex = (maxIndex.max || 0) + 1;
 
   const insertItem = db.prepare(
-    'INSERT INTO shopping_items (id, list_id, name, amount, unit, checked, order_index) VALUES (?, ?, ?, ?, ?, 0, ?)'
+    'INSERT INTO shopping_items (id, list_id, name, amount, unit, checked, order_index) VALUES (?, ?, ?, ?, ?, ?, ?)'
   );
 
   const inserted = [];
   for (const ing of ingredients) {
     const id = uuidv4();
     const amount = ing.amount ? ing.amount * servings_multiplier : null;
-    insertItem.run(id, req.params.id, ing.name, amount, ing.unit, orderIndex++);
+    const checked = checked_ingredient_ids.includes(ing.id) ? 1 : 0;
+    insertItem.run(id, req.params.id, ing.name, amount, ing.unit, checked, orderIndex++);
     inserted.push(db.prepare('SELECT * FROM shopping_items WHERE id = ?').get(id));
   }
 
